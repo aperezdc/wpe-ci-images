@@ -1,0 +1,9 @@
+#ifdef DEVEL
+base-devel
+#else
+base
+#endif
+
+cmake
+mesa
+zsh

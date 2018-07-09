@@ -1,0 +1,3 @@
+#! /bin/zsh
+print -r -u 2 "$@"
+exit 1

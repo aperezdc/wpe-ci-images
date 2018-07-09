@@ -1,0 +1,50 @@
+#! /bin/zsh
+emulate -L zsh
+setopt multios err_return
+
+# Make sure no aliases are defined. At all.
+unalias -a -s
+
+# Automatically pick helpers from the functions/ subdir.
+fpath=("${$(dirname "$0"):a}/functions")
+autoload -Uz "${fpath[1]}"/*(.:t)
+
+# Handle all the ': require ...' lines.
+declare -a required=()
+declare -a line
+while read -A line ; do
+	[[ ${#line} -gt 2 && ${(f)line[1,2]} = :\ require ]] || continue
+	required+=( "${(@)line[3,-1]}" )
+done < "${fpath[1]}"/*(.)
+
+require "${(u)required[@]}"
+	
+unset line
+unset required
+
+# Parse command line options.
+zmodload zsh/zutil
+
+declare -a PKGLIST_DEFINES
+declare -a pkglist_files
+declare -A OPTS=()
+
+zparseopts -A OPTS -D -M -E \
+	h -help=h \
+	o: -output:=o \
+	D+:-=PKGLIST_DEFINES -define+:-=D \
+	p+:-=pkglist_files -pkglist+:-=p
+
+pkglist_files=( "${pkglist_files[@]#-p}" )
+
+if [[ ${OPTS[-h]+set} = set ]] ; then
+	show-help "${0}" 0
+fi
+
+declare -a packages=( "$@" )
+if [[ ${#pkglist_files} -gt 0 ]] ; then
+	packages=( $(pkglist "${pkglist_files[@]}") "$@" )
+fi
+
+[[ -n ${OPTS[-o]} ]] || die 'No output directory specified'
+[[ ${#packages} -gt 0 ]] || die 'No packages specified'

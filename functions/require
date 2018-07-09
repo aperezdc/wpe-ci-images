@@ -1,0 +1,18 @@
+#! /bin/zsh
+
+declare -A _REQUIRED_SEEN
+
+local cmdname
+for cmdname in "$@" ; do
+	if ${_REQUIRED_SEEN[${cmdname}]-false} ; then
+		continue
+	fi
+
+	local cmdpath=$(whence -p "${cmdname}")
+	if [[ -z ${cmdpath} ]] ; then
+		die "Required command '${cmdname}' was not found"
+	fi
+
+	alias "'${cmdname}'='${cmdpath}'"
+	_REQUIRED_SEEN[${cmdname}]=true
+done

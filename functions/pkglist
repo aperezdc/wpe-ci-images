@@ -1,0 +1,15 @@
+#! /bin/zsh
+
+: require cpp
+
+local -a all_items
+local -a items
+local item
+while read -rA items ; do
+	for item in "${items[@]}" ; do
+		[[ -n ${item} ]] || continue
+		all_items+=("${item}")
+	done
+done < <(cpp -P -nostdinc "${PKGLIST_DEFINES[@]}" < "$@")
+
+print -rlo "${all_items[@]}"
