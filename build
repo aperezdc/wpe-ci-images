@@ -18,13 +18,15 @@ while read -A line ; do
 done < "${fpath[1]}"/*(.)
 
 require "${(u)required[@]}"
+require pigz tar
 	
 unset line
 unset required
 
-# Parse command line options.
 zmodload zsh/zutil
+zmodload zsh/stat
 
+# Parse command line options.
 declare -a PKGLIST_DEFINES
 declare -a pkglist_files
 declare -A OPTS=()
@@ -46,5 +48,55 @@ if [[ ${#pkglist_files} -gt 0 ]] ; then
 	packages=( $(pkglist "${pkglist_files[@]}") "$@" )
 fi
 
-[[ -n ${OPTS[-o]} ]] || die 'No output directory specified'
+[[ -n ${OPTS[-o]} ]] || die 'No image output path specified'
 [[ ${#packages} -gt 0 ]] || die 'No packages specified'
+
+declare -r O=${OPTS[-o]}
+declare -r rootfs_path="${O}/rootfs"
+declare -r blobs_path="${O}/blobs"
+
+if [[ ! -r ${rootfs_path}.tar.gz ]] ; then
+	mkdir -p "${rootfs_path}"
+	pacstrap -C <(gen-pacman-conf) -c -M "${rootfs_path}" "${packages[@]}"
+	tar -C "${rootfs_path}" -cf "${rootfs_path}.tar" .
+	sha256 "${rootfs_path}.tar" > "${rootfs_path}.tar.sum"
+	pigz -9 "${rootfs_path}.tar"
+	sha256 "${rootfs_path}.tar.gz" > "${rootfs_path}.tar.gz.sum"
+fi
+
+cat > "${O}/config.json" <<EOF
+{
+	"architecture": "amd64",
+	"os": "linux",
+	"rootfs": {
+		"type": "layers",
+		"diff_ids": [
+			"sha256:$(< "${rootfs_path}.tar.sum")"
+		]
+	}
+}
+EOF
+sha256 "${O}/config.json" > "${O}/config.json.sum"
+
+mkdir -p "${blobs_path}"
+echo 'Directory Transport Version: 1.1' > "${blobs_path}/version"
+ln -f "${rootfs_path}.tar.gz" "${blobs_path}/$(< "${rootfs_path}.tar.gz.sum")"
+ln -f "${O}/config.json" "${blobs_path}/$(< "${O}/config.json.sum")"
+cat > "${blobs_path}/manifest.json" <<EOF
+{
+	"schemaVersion": 2,
+	"mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+	"config": {
+		"mediaType": "application/vnd.docker.container.image.v1+json",
+		"digest": "sha256:$(< "${O}/config.json.sum")",
+		"size": $(zstat +size "${O}/config.json")
+	},
+	"layers": [
+		{
+			"mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+			"digest": "sha256:$(< "${rootfs_path}.tar.gz.sum")",
+			"size": $(zstat +size "${rootfs_path}.tar.gz")
+		}
+	]
+}
+EOF

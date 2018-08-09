@@ -1,0 +1,7 @@
+#! /bin/zsh
+
+: require sha256sum
+
+local sum rest
+read -r sum rest < <(sha256sum "$@")
+printf '%s' "${sum}"

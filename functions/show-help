@@ -13,7 +13,7 @@ Assembles root file system images, optionally preinstalling packages in them.
 Available options:
 
   -o, --output PATH
-        Set the destination directory for the generated rootfs image.
+        Set the destination directory for the generated files.
 
   -Dname[=value], --define name[=value]
         Defines the macro "name", used during package list expansion.
