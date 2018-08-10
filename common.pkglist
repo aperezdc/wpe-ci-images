@@ -1,9 +1,11 @@
 #ifdef DEVEL
 base-devel
+make
 #else
 base
 #endif
 
+libxkbcommon
 cmake
 mesa
 zsh
