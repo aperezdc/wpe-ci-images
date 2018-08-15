@@ -1,0 +1,10 @@
+#define BAREBONES
+#include "base.pkginc"
+
+arch-install-scripts
+coreutils
+gcc
+pigz
+skopeo
+tar
+zsh

@@ -1,0 +1,14 @@
+#ifdef BAREBONES
+  filesystem
+#else // !BAREBONES
+# ifdef DEVEL
+    base-devel
+    cmake
+    make
+    namcap
+    git
+    openssh
+# else // !DEVEL
+    base
+# endif // DEVEL
+#endif // BAREBONES
