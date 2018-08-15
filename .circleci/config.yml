@@ -1,0 +1,29 @@
+version: 2
+jobs:
+  build-imagebuild:
+    docker:
+      - image: aperezdc/ci-imagebuild:latest
+    steps:
+      - checkout
+      - run:
+          name: "Build: imagebuild"
+          command: |
+            rm -rf _imagebuild
+            ./build -o _imagebuild -p imagebuild.pkglist
+  build-wpebackend:
+    docker:
+      - image: aperezdc/ci-imagebuild:latest
+    steps:
+      - checkout
+      - run:
+          name: "Build: wpebackend"
+          command: |
+            rm -rf _wpebackend
+            ./build -o _wpebackend -p wpebackend.pkglist
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build-imagebuild
+      - build-wpebackend
