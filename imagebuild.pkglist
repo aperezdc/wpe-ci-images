@@ -3,7 +3,7 @@
 
 arch-install-scripts
 coreutils
-gcc
+mcpp
 pigz
 skopeo
 tar

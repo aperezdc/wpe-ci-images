@@ -1,6 +1,6 @@
 #! /bin/zsh
 
-: require cpp
+: require mcpp
 
 local -a all_items
 local -a items
@@ -10,6 +10,6 @@ while read -rA items ; do
 		[[ -n ${item} ]] || continue
 		all_items+=("${item}")
 	done
-done < <(cpp -P -nostdinc "${PKGLIST_DEFINES[@]}" < "$@")
+done < <(mcpp -e utf-8 -N -P -I- "${PKGLIST_DEFINES[@]}" < "$@")
 
 print -rlo "${all_items[@]}"
