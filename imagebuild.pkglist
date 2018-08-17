@@ -3,6 +3,7 @@
 
 arch-install-scripts
 coreutils
+jq
 mcpp
 pigz
 skopeo
