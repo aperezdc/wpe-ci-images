@@ -28,15 +28,18 @@ zmodload zsh/stat
 # Parse command line options.
 declare -a PKGLIST_DEFINES
 declare -a pkglist_files
+declare -a json_configs
 declare -A OPTS=()
 
 zparseopts -A OPTS -D -M -E \
 	h -help=h \
 	o: -output:=o \
 	D+:-=PKGLIST_DEFINES -define+:-=D \
-	p+:-=pkglist_files -pkglist+:-=p
+	p+:-=pkglist_files -pkglist+:-=p \
+	C+:-=json_configs -image-config+:-=C
 
 pkglist_files=( "${pkglist_files[@]#-p}" )
+json_configs=( "${json_configs[@]#-C}" )
 
 if [[ ${OPTS[-h]+set} = set ]] ; then
 	show-help "${0}" 0
@@ -63,18 +66,11 @@ if [[ ! -r ${rootfs_path}.tar.gz ]] ; then
 	sha256 "${rootfs_path}.tar.gz" > "${rootfs_path}.tar.gz.sum"
 fi
 
-> "${O}/config.json" <<EOF
-{
-	"architecture": "amd64",
-	"os": "linux",
-	"rootfs": {
-		"type": "layers",
-		"diff_ids": [
-			"sha256:$(< "${rootfs_path}.tar.sum")"
-		]
-	}
-}
-EOF
+
+# FIXME: Un-hardcode os/architecture.
+echo "${json_configs[*]}"
+json-merge =(gen-image-conf-base linux amd64 "$(< "${rootfs_path}.tar.sum")") \
+	"${json_configs[@]}" > "${O}/config.json"
 sha256 "${O}/config.json" > "${O}/config.json.sum"
 
 mkdir -p "${blobs_path}"

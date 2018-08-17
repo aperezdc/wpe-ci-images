@@ -1,0 +1,29 @@
+#! /bin/zsh
+
+# Usage:
+#   gen-image-conf-base <os> <arch> <image-sha256>...
+
+[[ $# -ge 3 ]] \
+	|| die "$0: Invalid number of arguments"
+
+local os=$1
+local arch=$2
+shift 2
+
+local -a diff_ids=( )
+local shasum
+for shasum in "$@" ; do
+	diff_ids+=( \""sha256:${shasum}\"" )
+done
+
+# TODO: Add "created" date (Format: RFC-3339, section 5.6)
+
+<<EOF
+{
+	"os": "${os}", "architecture": "${arch}",
+	"rootfs": {
+		"type": "layers",
+		"diff_ids": [ ${(j:, :)diff_ids[@]} ]
+	}
+}
+EOF

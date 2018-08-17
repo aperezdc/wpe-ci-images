@@ -9,7 +9,7 @@ jobs:
           name: "Build: imagebuild"
           command: |
             rm -rf _imagebuild
-            ./build -o _imagebuild -p imagebuild.pkglist
+            ./build -o _imagebuild -p imagebuild.pkglist -C imagebuild.json
   build-wpebackend:
     docker:
       - image: aperezdc/ci-imagebuild:latest

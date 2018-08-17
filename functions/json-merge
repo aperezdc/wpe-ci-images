@@ -1,0 +1,15 @@
+#! /bin/zsh
+
+: require jq
+
+[[ $# -gt 0 ]] \
+	|| die "$0: Invalid number of parameters"
+
+local program=".[0]"
+local n
+if [[ $# -gt 1 ]] ; then
+	for n in {2..$#} ; do
+		program+=" * .[$((n - 1))]"
+	done
+fi
+jq -s "${program}" "$@"
