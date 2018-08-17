@@ -6,8 +6,7 @@ setopt multios err_return
 unalias -a -s
 
 # Automatically pick helpers from the functions/ subdir.
-fpath=("${$(dirname "$0"):a}/functions")
-autoload -Uz "${fpath[1]}"/*(.:t)
+fpath="${0:A:h}/functions" autoload -RUz "${0:A:h}/functions"/*(.:t)
 
 # Handle all the ': require ...' lines.
 declare -a required=()
@@ -15,7 +14,7 @@ declare -a line
 while read -A line ; do
 	[[ ${#line} -gt 2 && ${(f)line[1,2]} = :\ require ]] || continue
 	required+=( "${(@)line[3,-1]}" )
-done < "${fpath[1]}"/*(.)
+done < "${0:A:h}/functions"/*(.)
 
 require "${(u)required[@]}"
 require pigz tar
