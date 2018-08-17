@@ -1,9 +1,8 @@
 #! /bin/zsh
-#
 
 # FIXME: Un-hardcode the architecture.
 
-cat <<-----
+<<EOF
 [options]
 Architecture = x86_64
 CheckSpace
@@ -18,4 +17,4 @@ Include = /etc/pacman.d/mirrorlist
 
 [community]
 Include = /etc/pacman.d/mirrorlist
-----
+EOF

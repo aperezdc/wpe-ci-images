@@ -63,7 +63,7 @@ if [[ ! -r ${rootfs_path}.tar.gz ]] ; then
 	sha256 "${rootfs_path}.tar.gz" > "${rootfs_path}.tar.gz.sum"
 fi
 
-cat > "${O}/config.json" <<EOF
+> "${O}/config.json" <<EOF
 {
 	"architecture": "amd64",
 	"os": "linux",
@@ -81,7 +81,8 @@ mkdir -p "${blobs_path}"
 echo 'Directory Transport Version: 1.1' > "${blobs_path}/version"
 ln -f "${rootfs_path}.tar.gz" "${blobs_path}/$(< "${rootfs_path}.tar.gz.sum")"
 ln -f "${O}/config.json" "${blobs_path}/$(< "${O}/config.json.sum")"
-cat > "${blobs_path}/manifest.json" <<EOF
+
+> "${blobs_path}/manifest.json" <<EOF
 {
 	"schemaVersion": 2,
 	"mediaType": "application/vnd.docker.distribution.manifest.v2+json",
