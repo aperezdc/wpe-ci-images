@@ -17,8 +17,17 @@ while read -A line ; do
 done < "${0:A:h}/functions"/*(.)
 
 require "${(u)required[@]}"
-require pigz tar
-	
+require pigz tar pv fakeroot fakechroot
+
+if [[ -z ${FAKECHROOT} || ${FAKECHROOT} != true ]] ; then
+	echo ' :: Re-execing under fakechroot...'
+	exec fakechroot -e none -- "$0" "$@"
+fi
+if [[ -z ${FAKEROOTKEY} ]] ; then
+	echo ' :: Re-execing under fakeroot...'
+	exec fakeroot -u -- "$0" "$@"
+fi
+
 unset line
 unset required
 
@@ -56,13 +65,44 @@ fi
 declare -r O=${OPTS[-o]}
 declare -r rootfs_path="${O}/rootfs"
 declare -r blobs_path="${O}/blobs"
+declare -r cache_path="${O}/cache"
 
-if [[ ! -r ${rootfs_path}.tar.gz ]] ; then
-	mkdir -p "${rootfs_path}"
-	pacstrap -C <(gen-pacman-conf) -c -M "${rootfs_path}" "${packages[@]}"
-	tar -C "${rootfs_path}" -cf "${rootfs_path}.tar" .
+
+if [[ ! -r ${rootfs_path}.done ]] ; then
+	rm -rf "${rootfs_path}"
+	mkdir -p \
+		"${rootfs_path}"/var/{cache/pacman/pkg,lib/pacman,log} \
+		"${rootfs_path}"/{dev,proc,sys} \
+		"${cache_path}"
+	# TODO: Add package in imagebuild.pkglist
+	# bindfs --chown-ignore --chgrp-ignore --chmod-ignore --xattr-none --delete-deny --rename-deny \
+	#	/dev "${rootfs_path}/dev"
+	: > "${O}/pacman.log"
+	reflector --protocol https --score 5 > "${O}/mirrorlist"
+	gen-pacman-conf "${O}/mirrorlist" > "${O}/pacman.conf"
+	pacman -Sy \
+		--root "${rootfs_path}" \
+		--cachedir "${cache_path}" \
+		--logfile "${O}/pacman.log" \
+		--config "${O}/pacman.conf" \
+		--noconfirm "${packages[@]}"
+	# fusermount -u "${rootfs_path}/dev"
+	touch "${rootfs_path}.done"
+	rm -f "${rootfs_path}.tar.sum" "${rootfs_path}.tar.gz.sum"
+fi
+
+if [[ ! -r ${rootfs_path}.tar.sum ]] ; then
+	read -r rootfs_size dummy < <(du -s "${rootfs_path}/")
+	echo " :: Packaging rootfs..."
+	tar -C "${rootfs_path}" -cp . | pv -peta -D 3 -s "${rootfs_size}" > "${rootfs_path}.tar"
 	sha256 "${rootfs_path}.tar" > "${rootfs_path}.tar.sum"
-	pigz -9 "${rootfs_path}.tar"
+	rm -f "${rootfs_path}.tar.gz.sum"
+fi
+
+if [[ ! -r ${rootfs_path}.tar.gz.sum ]] ; then
+	echo " :: Compressing rootfs..."
+	pv -peta -D 3 "${rootfs_path}.tar" | pigz -9c > "${rootfs_path}.tar.gz"
+	rm "${rootfs_path}.tar"
 	sha256 "${rootfs_path}.tar.gz" > "${rootfs_path}.tar.gz.sum"
 fi
 

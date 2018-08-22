@@ -1,0 +1,12 @@
+{
+	"process": {
+		"capabilities": {
+			"effective": [
+				"CAP_SYS_ADMIN"
+			],
+			"permitted": [
+				"CAP_SYS_ADMIN"
+			]
+		}
+	}
+}

@@ -2,6 +2,11 @@
 
 # FIXME: Un-hardcode the architecture.
 
+local mirrorlist='/etc/pacman.d/mirrorlist'
+if [[ -n $1 ]] ; then
+	mirrorlist=${1:A}
+fi
+
 <<EOF
 [options]
 Architecture = x86_64
@@ -10,11 +15,11 @@ SigLevel = Required DatabaseOptional
 LocalFileSigLevel = Optional
 
 [core]
-Include = /etc/pacman.d/mirrorlist
+Include = ${mirrorlist}
 
 [extra]
-Include = /etc/pacman.d/mirrorlist
+Include = ${mirrorlist}
 
 [community]
-Include = /etc/pacman.d/mirrorlist
+Include = ${mirrorlist}
 EOF

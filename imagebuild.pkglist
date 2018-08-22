@@ -3,9 +3,13 @@
 
 arch-install-scripts
 coreutils
+fakechroot
+fakeroot
 jq
 mcpp
 pigz
+pv
+reflector
 skopeo
 tar
 zsh
