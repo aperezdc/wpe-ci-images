@@ -11,18 +11,18 @@ jobs:
             - pkgcache-v1-{{ arch }}-{{ .Branch }}-
             - pkgcache-v1-{{ arch }}-
       - run:
-          name: "Build: imagebuild"
+          name: Build
           command: |
             rm -rf _imagebuild
             ./build -N -P _pkgcache -o _imagebuild -p imagebuild.pkglist -C imagebuild.json
-      - persist_to_workspace:
-          root: _imagebuild
-          paths:
-            - blobs
       - save_cache:
           key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "imagebuild.pkglist" }}
           paths:
             - _pkgcache
+      - persist_to_workspace:
+          root: _imagebuild
+          paths:
+            - blobs
 
   upload-imagebuild:
     docker:
@@ -31,7 +31,7 @@ jobs:
       - attach_workspace:
           at: output
       - run:
-          name: "Upload: imagebuild"
+          name: Upload
           command: |
             skopeo copy --dest-creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD}" \
                 dir:output/blobs/ docker://docker.io/aperezdc/ci-imagebuild
@@ -47,7 +47,7 @@ jobs:
             - pkgcache-v1-{{ arch }}-{{ .Branch }}-
             - pkgcache-v1-{{ arch }}-
       - run:
-          name: "Build: wpebackend"
+          name: Build
           command: |
             rm -rf _wpebackend
             ./build -N -P _pkgcache -o _wpebackend -p wpebackend.pkglist
@@ -55,6 +55,22 @@ jobs:
           key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "wpebackend.pkglist" }}
           paths:
             - _pkgcache
+      - persist_to_workspace:
+          root: _wpebackend
+          paths:
+            - blobs
+
+  upload-wpebackend:
+    docker:
+      - image: aperezdc/ci-imagebuild:latest
+    steps:
+      - attach_workspace:
+          at: output
+      - run:
+          name: Upload
+          command: |
+            skopeo copy --dest-creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD}" \
+                dir:output/blobs/ docker://docker.io/aperezdc/ci-wpebackend
 
 workflows:
   version: 2
@@ -66,6 +82,13 @@ workflows:
           context: wpe-ci
           requires:
             - build-imagebuild
+          filters:
+            branches:
+              only: /^master$/
+      - upload-wpebackend:
+          context: wpe-ci
+          requires:
+            - build-wpebackend
           filters:
             branches:
               only: /^master$/
