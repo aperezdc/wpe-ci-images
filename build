@@ -35,6 +35,7 @@ zparseopts -A OPTS -D -M -E \
 	h -help=h \
 	N -noprogressbar=N \
 	o: -output:=o \
+	P: -pkgcache:=P \
 	D+:-=PKGLIST_DEFINES -define+:-=D \
 	p+:-=pkglist_files -pkglist+:-=p \
 	C+:-=json_configs -image-config+:-=C
@@ -54,12 +55,17 @@ fi
 [[ -n ${OPTS[-o]} ]] || die 'No image output path specified'
 [[ ${#packages} -gt 0 ]] || die 'No packages specified'
 
-declare -r O=${OPTS[-o]}
+declare -r O=${OPTS[-o]:A}
 declare -r rootfs_path="${O}/rootfs"
 declare -r blobs_path="${O}/blobs"
-declare -r cache_path="${O}/cache"
-declare -a pacman_args=( )
 
+if [[ ${OPTS[-P]+set} = set ]] ; then
+	declare -r cache_path=${OPTS[-P]:A}
+else
+	declare -r cache_path="${O}/cache"
+fi
+
+declare -a pacman_args=( )
 if [[ ${OPTS[-N]+set} = set ]] ; then
 	pacman_args+=(--noprogressbar)
 fi
