@@ -19,15 +19,6 @@ done < "${0:A:h}/functions"/*(.)
 require "${(u)required[@]}"
 require pigz tar pv fakeroot fakechroot
 
-if [[ -z ${FAKECHROOT} || ${FAKECHROOT} != true ]] ; then
-	echo ' :: Re-execing under fakechroot...'
-	exec fakechroot -e none -- "$0" "$@"
-fi
-if [[ -z ${FAKEROOTKEY} ]] ; then
-	echo ' :: Re-execing under fakeroot...'
-	exec fakeroot -u -- "$0" "$@"
-fi
-
 unset line
 unset required
 
@@ -68,6 +59,18 @@ declare -r blobs_path="${O}/blobs"
 declare -r cache_path="${O}/cache"
 
 
+function fake-init
+{
+	: > "${O}/faked.state"
+}
+
+function fake
+{
+	echo ":: fake: $*"
+	fakechroot -e none -- fakeroot -i "${O}/faked.state" -s "${O}/faked.state" -- "$@"
+}
+
+
 if [[ ! -r ${rootfs_path}.done ]] ; then
 	rm -rf "${rootfs_path}"
 	mkdir -p \
@@ -78,9 +81,11 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 	# bindfs --chown-ignore --chgrp-ignore --chmod-ignore --xattr-none --delete-deny --rename-deny \
 	#	/dev "${rootfs_path}/dev"
 	: > "${O}/pacman.log"
+	fake-init
 	reflector --protocol https --score 5 > "${O}/mirrorlist"
 	gen-pacman-conf "${O}/mirrorlist" > "${O}/pacman.conf"
-	pacman -Sy \
+
+	fake pacman -Sy \
 		--root "${rootfs_path}" \
 		--cachedir "${cache_path}" \
 		--logfile "${O}/pacman.log" \
@@ -94,7 +99,7 @@ fi
 if [[ ! -r ${rootfs_path}.tar.sum ]] ; then
 	read -r rootfs_size dummy < <(du -s "${rootfs_path}/")
 	echo " :: Packaging rootfs..."
-	tar -C "${rootfs_path}" -cp . | pv -peta -D 3 -s "${rootfs_size}" > "${rootfs_path}.tar"
+	fake tar -C "${rootfs_path}" -cp . | pv -peta -D 3 -s "${rootfs_size}" > "${rootfs_path}.tar"
 	sha256 "${rootfs_path}.tar" > "${rootfs_path}.tar.sum"
 	rm -f "${rootfs_path}.tar.gz.sum"
 fi
