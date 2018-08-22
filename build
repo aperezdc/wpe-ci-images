@@ -80,10 +80,13 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 	# TODO: Add package in imagebuild.pkglist
 	# bindfs --chown-ignore --chgrp-ignore --chmod-ignore --xattr-none --delete-deny --rename-deny \
 	#	/dev "${rootfs_path}/dev"
-	: > "${O}/pacman.log"
 	fake-init
+
+	# Empty log, create Pacman configuration files.
+	echo ':: Generating mirror list...'
 	reflector --protocol https --score 5 > "${O}/mirrorlist"
 	gen-pacman-conf "${O}/mirrorlist" > "${O}/pacman.conf"
+	: > "${O}/pacman.log"
 
 	fake pacman -Sy \
 		--root "${rootfs_path}" \
@@ -98,14 +101,14 @@ fi
 
 if [[ ! -r ${rootfs_path}.tar.sum ]] ; then
 	read -r rootfs_size dummy < <(du -s "${rootfs_path}/")
-	echo " :: Packaging rootfs..."
+	echo ":: Packaging rootfs..."
 	fake tar -C "${rootfs_path}" -cp . | pv -peta -D 3 -s "${rootfs_size}" > "${rootfs_path}.tar"
 	sha256 "${rootfs_path}.tar" > "${rootfs_path}.tar.sum"
 	rm -f "${rootfs_path}.tar.gz.sum"
 fi
 
 if [[ ! -r ${rootfs_path}.tar.gz.sum ]] ; then
-	echo " :: Compressing rootfs..."
+	echo ":: Compressing rootfs..."
 	pv -peta -D 3 "${rootfs_path}.tar" | pigz -9c > "${rootfs_path}.tar.gz"
 	rm "${rootfs_path}.tar"
 	sha256 "${rootfs_path}.tar.gz" > "${rootfs_path}.tar.gz.sum"
