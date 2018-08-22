@@ -10,6 +10,23 @@ jobs:
           command: |
             rm -rf _imagebuild
             ./build -N -o _imagebuild -p imagebuild.pkglist -C imagebuild.json
+      - persist_to_workspace:
+          root: _imagebuild
+          paths:
+            - blobs
+
+  upload-imagebuild:
+    docker:
+      - image: aperezdc/ci-imagebuild:latest
+    steps:
+      - attach_workspace:
+          at: output
+      - run:
+          name: "Upload: imagebuild"
+          command: |
+            skopeo copy --dest-creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD}" \
+                dir:output/blobs/ docker://docker.io/aperezdc/ci-imagebuild
+
   build-wpebackend:
     docker:
       - image: aperezdc/ci-imagebuild:latest
@@ -27,3 +44,10 @@ workflows:
     jobs:
       - build-imagebuild
       - build-wpebackend
+      - upload-imagebuild:
+          context: wpe-ci
+          requires:
+            - build-imagebuild
+          filters:
+            branches:
+              only: /^master$/
