@@ -6,6 +6,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Build: tools"
+          command: |
+            make -C tools
+      - run:
           name: "Build: imagebuild"
           command: |
             rm -rf _imagebuild
@@ -32,6 +36,10 @@ jobs:
       - image: aperezdc/ci-imagebuild:latest
     steps:
       - checkout
+      - run:
+          name: "Build: tools"
+          command: |
+            make -C tools
       - run:
           name: "Build: wpebackend"
           command: |

@@ -58,11 +58,100 @@ declare -r O=${OPTS[-o]}
 declare -r rootfs_path="${O}/rootfs"
 declare -r blobs_path="${O}/blobs"
 declare -r cache_path="${O}/cache"
+declare -r tools_path="${0:A:h}/tools"
+
+declare -a mounts=( )
+declare -A mounts_fuse=( )
+
 declare -a pacman_args=( )
 
 if [[ ${OPTS[-N]+set} = set ]] ; then
 	pacman_args+=(--noprogressbar)
 fi
+
+
+function mounts-cleanup
+{
+	local dst
+	for dst in "${(aO@)mounts}" ; do
+		if [[ ${mounts_fuse["${dst}"]} = true ]] ; then
+			echo ":: umount-fuse: ${dst}"
+			fusermount -u "${dst}"
+		else
+			echo ":: umount: ${dst}"
+			umount "${dst}"
+		fi
+	done
+	mounts_fuse=( )
+	mounts=( )
+}
+
+
+trap mounts-cleanup EXIT QUIT INT
+
+
+function mount-available
+{
+	if [[ -x ${tools_path}/chkcap ]] ; then
+		"${tools_path}/chkcap" "$$" cap_sys_admin
+	else
+		[[ ${UID} -eq 0 || ${EUID} -eq 0 ]]
+	fi
+}
+
+
+function fuse-available
+{
+	local fusermount_path=$(whence -p fusermount)
+	[[ -r /dev/fuse && -w /dev/fuse && -n ${fusermount_path} ]]
+}
+
+
+function fs-bind
+{
+	local src=${1:A}
+	local dst=${2:A}
+
+	if [[ -n ${BUILD_NOMOUNT} && ${BUILD_NOMOUNT} -ne 0 ]] ; then
+		echo ":: skip-mount: ${src} ${dst}"
+		return
+	fi
+
+	if [[ ! -d ${src} ]] ; then
+		die "No such directory: ${src}"
+	fi
+
+	if mount-available ; then
+		# Use normal mounts.
+		echo ":: bind-mount: ${src} ${dst}"
+		mkdir -p "${dst}"
+		if mount --bind "${src}" "${dst}" ; then
+			mounts+=("${dst}")
+			return
+		else
+			return $?
+		fi
+	fi
+
+	if fuse-available ; then
+		local bindfs_path=$(whence -p bindfs)
+		if [[ -n ${bindfs_path} ]] ; then
+			echo ":: bindfs-mount: ${src} ${dst}"
+			mkdir -p "${dst}"
+			# TODO: Add package in imagebuild.pkglist
+			if bindfs --chown-ignore --chgrp-ignore --xattr-none \
+				--delete-deny --rename-deny --resolve-symlinks --no-allow-other \
+				"${src}" "${dst}"
+			then
+				mounts_fuse["${dst}"]=true
+				mounts+=("${dst}")
+			fi
+			return $?
+		fi
+	fi
+
+	echo "Skipped: fs-bind ${src} ${dst}"
+}
 
 
 function fake-init
@@ -115,12 +204,8 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 	rm -rf "${rootfs_path}"
 	mkdir -p \
 		"${rootfs_path}"/var/{cache/pacman/pkg,lib/pacman,log} \
-		"${rootfs_path}"/{dev,proc,sys} \
 		"${rootfs_path}/etc/pacman.d/gnupg" \
 		"${cache_path}"
-	# TODO: Add package in imagebuild.pkglist
-	# bindfs --chown-ignore --chgrp-ignore --chmod-ignore --xattr-none --delete-deny --rename-deny \
-	#	/dev "${rootfs_path}/dev"
 	fake-init
 
 	# Empty log, create Pacman configuration files.
@@ -188,6 +273,10 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 	echo ':: Setting PGP keyring permissions...'
 	fake chown -R 0:0 "${rootfs_path}/etc/pacman.d/gnupg"
 
+	fs-bind /dev "${rootfs_path}/dev"
+	fs-bind /sys "${rootfs_path}/sys"
+	fs-bind /proc "${rootfs_path}/proc"
+
 	fake pacman -Sy "${pacman_args[@]}" \
 		--root "${rootfs_path}" \
 		--cachedir "${cache_path}" \
@@ -195,7 +284,9 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 		--config "${O}/pacman.conf" \
 		--gpgdir "${rootfs_path}/etc/pacman.d/gnupg" \
 		--noconfirm "${packages[@]}"
-	# fusermount -u "${rootfs_path}/dev"
+
+	mounts-cleanup
+
 	touch "${rootfs_path}.done"
 	rm -f "${rootfs_path}.tar.sum" "${rootfs_path}.tar.gz.sum"
 fi
