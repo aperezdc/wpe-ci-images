@@ -17,7 +17,7 @@ while read -A line ; do
 done < "${0:A:h}/functions"/*(.)
 
 require "${(u)required[@]}"
-require pigz tar pv fakeroot fakechroot
+require pigz tar pv fakeroot fakechroot gpg
 
 unset line
 unset required
@@ -71,11 +71,46 @@ function fake
 }
 
 
+function gpg-pacman
+{
+	local homedir="${O}/rootfs/etc/pacman.d/gnupg"
+
+	if [[ ! -r ${homedir}/gpg.conf ]] ; then
+		> "${homedir}/gpg.conf" <<-EOF
+		no-greeting
+		no-permission-warning
+		lock-never
+		keyserver hkp://pool.sks-keyservers.net
+		keyserver-options timeout=10
+		EOF
+	fi
+
+	if [[ ! -r ${homedir}/gpg-agent.conf ]] ; then
+		> "${homedir}/gpg-agent.conf" <<-EOF
+		disable-scdaemon
+		EOF
+	fi
+
+	if [[ ! -r ${homedir}/pubring.gpg || ! -r ${homedir}/secring.gpg ]] ; then
+		touch "${homedir}"/{pub,sec}ring.gpg
+		chmod 644 "${homedir}/pubring.gpg"
+		chmod 600 "${homedir}/secring.gpg"
+		gpg-pacman --update-trustdb
+	fi
+
+	LANG=C gpg \
+		--homedir "${homedir}" \
+		--options "${homedir}/gpg.conf" \
+		--no-permission-warning "$@"
+}
+
+
 if [[ ! -r ${rootfs_path}.done ]] ; then
 	rm -rf "${rootfs_path}"
 	mkdir -p \
 		"${rootfs_path}"/var/{cache/pacman/pkg,lib/pacman,log} \
 		"${rootfs_path}"/{dev,proc,sys} \
+		"${rootfs_path}/etc/pacman.d/gnupg" \
 		"${cache_path}"
 	# TODO: Add package in imagebuild.pkglist
 	# bindfs --chown-ignore --chgrp-ignore --chmod-ignore --xattr-none --delete-deny --rename-deny \
@@ -88,11 +123,68 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 	gen-pacman-conf "${O}/mirrorlist" > "${O}/pacman.conf"
 	: > "${O}/pacman.log"
 
+	# Initialize PGP keyring.
+	echo ':: Initializing Pacman PGP keyring...'
+	gpg-pacman --gen-key --batch <<-EOF
+	%echo Generating pacman keyring master key...
+	Key-Type: RSA
+	Key-Length: 2048
+	Key-Usage: sign
+	Name-Real: Pacman Keyring Master Key
+	Name-Email: pacman@localhost
+	Expire-Date: 0
+	%no-protection
+	%commit
+	%echo Done
+	EOF
+
+	# Populate PGP keyring.
+	echo 'Importing PGP keys...'
+	gpg-pacman --quiet --import /usr/share/pacman/keyrings/archlinux.gpg
+
+	typeset -A keyids=( )
+	while IFS=: read -r keyid level ; do
+		if [[ ${keyid} = \#* ]] ; then
+			continue
+		fi
+		keyids[${keyid}]=${level}
+	done < /usr/share/pacman/keyrings/archlinux-trusted
+
+	for keyid in "${(k@)keyids}" ; do
+		echo ":: Signing ${keyid}"
+		gpg-pacman --command-fd 0 --batch --quiet --lsign-key "${keyid}" &> /dev/null <<-EOF
+		y
+		y
+		EOF
+		gpg-pacman --command-fd 0 --batch --quiet --edit-key "${keyid}" &> /dev/null <<-EOF
+		trust
+		${keyids[${keyid}]}
+		quit
+		EOF
+	done
+
+	keyids=( )
+	while read -r keyid ; do
+		keyids[${keyid}]=1
+	done < /usr/share/pacman/keyrings/archlinux-revoked
+
+	for keyid in "${(k@)keyids}" ; do
+		echo ":: Disabling ${keyid}"
+		gpg-pacman --command-fd 0 --batch --quiet --edit-key "${keyid}" &> /dev/null <<-EOF
+		disable
+		quit
+		EOF
+	done
+
+	echo ':: Updating PGP trustdb...'
+	gpg-pacman --command-fd 0 --batch --update-trustdb &> /dev/null < <( while true ; do echo 4 ; done )
+
 	fake pacman -Sy \
 		--root "${rootfs_path}" \
 		--cachedir "${cache_path}" \
 		--logfile "${O}/pacman.log" \
 		--config "${O}/pacman.conf" \
+		--gpgdir "${rootfs_path}/etc/pacman.d/gnupg" \
 		--noconfirm "${packages[@]}"
 	# fusermount -u "${rootfs_path}/dev"
 	touch "${rootfs_path}.done"
