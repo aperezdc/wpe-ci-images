@@ -202,6 +202,10 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 		--config "${O}/pacman.conf" \
 		--gpgdir "${rootfs_path}/etc/pacman.d/gnupg" \
 		--noconfirm "${packages[@]}"
+
+	fake useradd --root "${rootfs_path}" \
+		--shell /bin/bash --user-group --create-home build
+
 	# fusermount -u "${rootfs_path}/dev"
 	touch "${rootfs_path}.done"
 	rm -f "${rootfs_path}.tar.sum" "${rootfs_path}.tar.gz.sum"
@@ -210,7 +214,7 @@ fi
 if [[ ! -r ${rootfs_path}.tar.sum ]] ; then
 	read -r rootfs_size dummy < <(du -s "${rootfs_path}/")
 	echo ":: Packaging rootfs..."
-	fake tar -C "${rootfs_path}" -cpf "${rootfs_path}.tar" .
+	fake tar --numeric-owner -C "${rootfs_path}" -cpf "${rootfs_path}.tar" .
 	sha256 "${rootfs_path}.tar" > "${rootfs_path}.tar.sum"
 	rm -f "${rootfs_path}.tar.gz.sum"
 fi
