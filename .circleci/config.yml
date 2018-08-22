@@ -79,7 +79,7 @@ workflows:
   build:
     jobs:
       - build-imagebuild
-      - build-wpebackend
+
       - upload-imagebuild:
           context: wpe-ci
           requires:
@@ -87,6 +87,14 @@ workflows:
           filters:
             branches:
               only: /^master$/
+
+      - build-wpebackend:
+          requires:
+            - upload-imagebuild
+          filters:
+            branches:
+              only: /^master$/
+
       - upload-wpebackend:
           context: wpe-ci
           requires:
