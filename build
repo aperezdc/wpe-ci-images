@@ -179,6 +179,9 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 	echo ':: Updating PGP trustdb...'
 	gpg-pacman --command-fd 0 --batch --update-trustdb &> /dev/null < <( while true ; do echo 4 ; done )
 
+	echo ':: Setting PGP keyring permissions...'
+	fake chown -R 0:0 "${rootfs_path}/etc/pacman.d/gnupg"
+
 	fake pacman -Sy \
 		--root "${rootfs_path}" \
 		--cachedir "${cache_path}" \
