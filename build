@@ -17,7 +17,7 @@ while read -A line ; do
 done < "${0:A:h}/functions"/*(.)
 
 require "${(u)required[@]}"
-require pigz tar pv fakeroot fakechroot gpg
+require pigz tar fakeroot fakechroot gpg
 
 unset line
 unset required
@@ -197,15 +197,14 @@ fi
 if [[ ! -r ${rootfs_path}.tar.sum ]] ; then
 	read -r rootfs_size dummy < <(du -s "${rootfs_path}/")
 	echo ":: Packaging rootfs..."
-	fake tar -C "${rootfs_path}" -cp . | pv -peta -D 3 -s "${rootfs_size}" > "${rootfs_path}.tar"
+	fake tar -C "${rootfs_path}" -cpf "${rootfs_path}.tar" .
 	sha256 "${rootfs_path}.tar" > "${rootfs_path}.tar.sum"
 	rm -f "${rootfs_path}.tar.gz.sum"
 fi
 
 if [[ ! -r ${rootfs_path}.tar.gz.sum ]] ; then
 	echo ":: Compressing rootfs..."
-	pv -peta -D 3 "${rootfs_path}.tar" | pigz -9c > "${rootfs_path}.tar.gz"
-	rm "${rootfs_path}.tar"
+	pigz -9f "${rootfs_path}.tar"
 	sha256 "${rootfs_path}.tar.gz" > "${rootfs_path}.tar.gz.sum"
 fi
 
