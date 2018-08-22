@@ -7,8 +7,8 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkglist" }}-{{ checksum "imagebuild.pkglist" }}
-            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkglist" }}-
+            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "imagebuild.pkglist" }}
+            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-
             - pkgcache-v1-{{ arch }}-{{ .Branch }}-
             - pkgcache-v1-{{ arch }}-
       - run:
@@ -17,7 +17,7 @@ jobs:
             rm -rf _imagebuild
             ./build -N -P _pkgcache -o _imagebuild -p imagebuild.pkglist -C imagebuild.json
       - save_cache:
-          key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkglist" }}-{{ checksum "imagebuild.pkglist" }}
+          key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "imagebuild.pkglist" }}
           paths:
             - _pkgcache
       - persist_to_workspace:
@@ -44,8 +44,8 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkglist" }}-{{ checksum "wpebackend.pkglist" }}
-            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkglist" }}-
+            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "wpebackend.pkglist" }}
+            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-
             - pkgcache-v1-{{ arch }}-{{ .Branch }}-
             - pkgcache-v1-{{ arch }}-
       - run:
@@ -54,7 +54,7 @@ jobs:
             rm -rf _wpebackend
             ./build -N -P _pkgcache -o _wpebackend -p wpebackend.pkglist
       - save_cache:
-          key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkglist" }}-{{ checksum "wpebackend.pkglist" }}
+          key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "wpebackend.pkglist" }}
           paths:
             - _pkgcache
       - persist_to_workspace:
