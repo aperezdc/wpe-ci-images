@@ -107,13 +107,14 @@ function gpg-pacman
 		touch "${homedir}"/{pub,sec}ring.gpg
 		chmod 644 "${homedir}/pubring.gpg"
 		chmod 600 "${homedir}/secring.gpg"
-		gpg-pacman --update-trustdb
+		gpg-pacman --batch --update-trustdb
 	fi
 
 	LANG=C gpg \
 		--homedir "${homedir}" \
 		--options "${homedir}/gpg.conf" \
-		--no-permission-warning "$@"
+		--no-permission-warning \
+		--quiet --no-tty "$@" > /dev/null
 }
 
 
@@ -152,7 +153,7 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 
 	# Populate PGP keyring.
 	echo 'Importing PGP keys...'
-	gpg-pacman --quiet --import /usr/share/pacman/keyrings/archlinux.gpg
+	gpg-pacman --import /usr/share/pacman/keyrings/archlinux.gpg
 
 	typeset -A keyids=( )
 	while IFS=: read -r keyid level ; do
@@ -162,13 +163,13 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 		keyids[${keyid}]=${level}
 	done < /usr/share/pacman/keyrings/archlinux-trusted
 
+	echo ":: Signing ${#keyids} PGP keys..."
 	for keyid in "${(k@)keyids}" ; do
-		echo ":: Signing ${keyid}"
-		gpg-pacman --command-fd 0 --batch --quiet --lsign-key "${keyid}" &> /dev/null <<-EOF
+		gpg-pacman --command-fd 0 --batch --lsign-key "${keyid}" <<-EOF
 		y
 		y
 		EOF
-		gpg-pacman --command-fd 0 --batch --quiet --edit-key "${keyid}" &> /dev/null <<-EOF
+		gpg-pacman --command-fd 0 --batch --edit-key "${keyid}" <<-EOF
 		trust
 		${keyids[${keyid}]}
 		quit
@@ -180,16 +181,16 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 		keyids[${keyid}]=1
 	done < /usr/share/pacman/keyrings/archlinux-revoked
 
+	echo ":: Disabling ${#keyids} revoked PGP keys..."
 	for keyid in "${(k@)keyids}" ; do
-		echo ":: Disabling ${keyid}"
-		gpg-pacman --command-fd 0 --batch --quiet --edit-key "${keyid}" &> /dev/null <<-EOF
+		gpg-pacman --command-fd 0 --batch --edit-key "${keyid}" <<-EOF
 		disable
 		quit
 		EOF
 	done
 
 	echo ':: Updating PGP trustdb...'
-	gpg-pacman --command-fd 0 --batch --update-trustdb &> /dev/null < <( while true ; do echo 4 ; done )
+	gpg-pacman --command-fd 0 --batch --update-trustdb < <( while true ; do echo 4 ; done )
 
 	echo ':: Setting PGP keyring permissions...'
 	fake chown -R 0:0 "${rootfs_path}/etc/pacman.d/gnupg"
