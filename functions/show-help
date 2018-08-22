@@ -21,6 +21,9 @@ Available options:
   -p, --pkglist PATH
         Preinstall additional packages from a package list file.
 
+  -C, --image-config PATH
+        Merge contents of a JSON file at PATH as image configuration.
+
   package...
         Preinstall additional packages.
 
