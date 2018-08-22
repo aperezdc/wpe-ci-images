@@ -33,6 +33,7 @@ declare -A OPTS=()
 
 zparseopts -A OPTS -D -M -E \
 	h -help=h \
+	N -noprogressbar=N \
 	o: -output:=o \
 	D+:-=PKGLIST_DEFINES -define+:-=D \
 	p+:-=pkglist_files -pkglist+:-=p \
@@ -57,6 +58,11 @@ declare -r O=${OPTS[-o]}
 declare -r rootfs_path="${O}/rootfs"
 declare -r blobs_path="${O}/blobs"
 declare -r cache_path="${O}/cache"
+declare -a pacman_args=( )
+
+if [[ ${OPTS[-N]+set} = set ]] ; then
+	pacman_args+=(--noprogressbar)
+fi
 
 
 function fake-init
@@ -182,7 +188,7 @@ if [[ ! -r ${rootfs_path}.done ]] ; then
 	echo ':: Setting PGP keyring permissions...'
 	fake chown -R 0:0 "${rootfs_path}/etc/pacman.d/gnupg"
 
-	fake pacman -Sy \
+	fake pacman -Sy "${pacman_args[@]}" \
 		--root "${rootfs_path}" \
 		--cachedir "${cache_path}" \
 		--logfile "${O}/pacman.log" \
