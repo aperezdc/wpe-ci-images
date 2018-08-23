@@ -10,9 +10,11 @@ fi
 <<EOF
 [options]
 Architecture = x86_64
-CheckSpace
 SigLevel = Required DatabaseOptional
 LocalFileSigLevel = Optional
+UseDelta = 0.5
+TotalDownload
+CheckSpace
 
 [core]
 Include = ${mirrorlist}

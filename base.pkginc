@@ -11,5 +11,6 @@
     openssh
 # else // !DEVEL
     base
+    xdelta3  // For incremental package downloads.
 # endif // DEVEL
 #endif // BAREBONES
