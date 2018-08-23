@@ -1,9 +1,13 @@
 WPE CI Images
 =============
 
+[![CircleCI](https://circleci.com/gh/aperezdc/wpe-ci-images/tree/master.svg?style=svg)](https://circleci.com/gh/aperezdc/wpe-ci-images/tree/master)
+
 The files in this repository can be used to re-create the base Docker images
 used for continuous integration of [WPE WebKit](https://wpewebkit.org):
 
+- [aperezdc/ci-imagebuild](https://hub.docker.com/r/aperezdc/ci-imagebuild/):
+  Used to build other images and upload them to a registry.
 - [aperezdc/ci-wpebackend](https://hub.docker.com/r/aperezdc/ci-wpebackend/):
   Used for [WPEBackend](https://github.com/WebPlatformForEmbedded/WPEBackend).
 
@@ -17,11 +21,11 @@ Images are based on [Arch Linux](https://www.archlinux.org/). Running the
 [build](./script) on Arch is recommended, though any GNU/Linux system where
 the following tools are available should theoretically work as well:
 
-- C preprocessor (`cpp`).
+- [mcpp](http://mcpp.sourceforge.net/) C preprocessor.
 - `sha256sum` (usually included as part of [GNU
   Coreutils](http://www.gnu.org/software/coreutils)).
-- `pacstrap` (part of
-  [arch-install-scripts](https://git.archlinux.org/arch-install-scripts.git/)).
+- `fakeroot` & `fakechroot`.
+- [GnuPG](https://www.gnupg.org/).
 - [pigz](https://zlib.net/pigz/).
 - `tar` ([GNU Tar](https://www.gnu.org/software/tar/) is known to work).
 - [Zsh](https://www.zsh.org).
@@ -30,7 +34,7 @@ Arch users can ensure that the needed packages are installed with the
 following command:
 
 ```sh
-pacman -S arch-install-scripts gcc pigz tar zsh
+pacman -S mcpp gpg fake{ch,}root pigz tar zsh
 ```
 
 ### Package lists
@@ -63,7 +67,7 @@ Run the `build` script, passing at least one package list in the command line
 or a package name:
 
 ```sh
-sudo ./build -DDEVEL --output out --pkglist wpebackend.pkglist
+./build --output out --pkglist wpebackend.pkglist
 ```
 
 The resulting contents of the `out/` directory will look similar to the
