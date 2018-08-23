@@ -1,6 +1,7 @@
 #define BAREBONES
 #include "base.pkginc"
 
+archlinux-keyring
 coreutils
 fakechroot
 fakeroot
