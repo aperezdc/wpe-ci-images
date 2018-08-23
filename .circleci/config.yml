@@ -20,10 +20,33 @@ jobs:
           key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "imagebuild.pkglist" }}
           paths:
             - _pkgcache
+      - run:
+          name: Source Archive
+          command: |
+            git archive --prefix=src/ -o _imagebuild/src.tar @
       - persist_to_workspace:
           root: _imagebuild
           paths:
             - blobs
+            - src.tar
+
+  check-imagebuild:
+    docker:
+      - image: aperezdc/ci-imagebuild:latest
+    steps:
+      - attach_workspace:
+          at: output
+      - setup_remote_docker
+      - run:
+          name: Prepare
+          command: |
+            VER=18.06.1
+            curl -sL "https://download.docker.com/linux/static/stable/x86_64/docker-${VER}-ce.tgz" \
+              | tar --strip-components=1 -C /usr/bin -xz docker/docker
+            skopeo copy dir:output/blobs/ docker-archive:ci-imagebuild.tar:ci-imagebuild
+            docker load --input ci-imagebuild.tar
+            docker exec ci-imagebuild /usr/bin/ls -lR /home
+            docker cp - ci-imagebuild:home/build < output/src.tar
 
   upload-imagebuild:
     docker:
@@ -80,10 +103,14 @@ workflows:
     jobs:
       - build-imagebuild
 
+      - check-imagebuild:
+          requires:
+            - build-imagebuild
+
       - upload-imagebuild:
           context: wpe-ci
           requires:
-            - build-imagebuild
+            - check-imagebuild
           filters:
             branches:
               only: /^master$/
