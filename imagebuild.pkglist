@@ -5,6 +5,7 @@ archlinux-keyring
 coreutils
 fakechroot
 fakeroot
+git
 jq
 mcpp
 pacman
