@@ -18,11 +18,17 @@ Available options:
   -Dname[=value], --define name[=value]
         Defines the macro "name", used during package list expansion.
 
+  -C, --image-config PATH
+        Merge contents of a JSON file at PATH as image configuration.
+
   -p, --pkglist PATH
         Preinstall additional packages from a package list file.
 
-  -C, --image-config PATH
-        Merge contents of a JSON file at PATH as image configuration.
+  -P, --pkgcache PATH
+        Path to a directory used by Pacman for package files.
+
+  -N, --noprogressbar
+        Instruct Pacman to not use progress bars.
 
   package...
         Preinstall additional packages.
