@@ -37,34 +37,34 @@ jobs:
             skopeo copy --dest-creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD}" \
                 dir:output/blobs/ docker://docker.io/aperezdc/ci-imagebuild
 
-  build-wpebackend:
+  build-libwpe:
     docker:
       - image: aperezdc/ci-imagebuild:latest
     steps:
       - checkout
       - restore_cache:
           keys:
-            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "wpebackend.pkglist" }}
+            - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "libwpe.pkglist" }}
             - pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-
             - pkgcache-v1-{{ arch }}-{{ .Branch }}-
             - pkgcache-v1-{{ arch }}-
       - run:
           name: Build
           command: |
-            rm -rf _wpebackend
-            ./build -N -P _pkgcache -o _wpebackend -p wpebackend.pkglist
+            rm -rf _libwpe
+            ./build -N -P _pkgcache -o _libwpe -p libwpe.pkglist
       - save_cache:
-          key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "wpebackend.pkglist" }}
+          key: pkgcache-v1-{{ arch }}-{{ .Branch }}-{{ checksum "base.pkginc" }}-{{ checksum "libwpe.pkglist" }}
           paths:
             - _pkgcache
       - persist_to_workspace:
-          root: _wpebackend
+          root: _libwpe
           paths:
             - blobs
 
-  upload-wpebackend:
+  upload-libwpe:
     docker:
-      - image: aperezdc/ci-imagebuild:latest
+      - image: aperezdc/ci-libwpe:latest
     steps:
       - attach_workspace:
           at: output
@@ -72,7 +72,7 @@ jobs:
           name: Upload
           command: |
             skopeo copy --dest-creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD}" \
-                dir:output/blobs/ docker://docker.io/aperezdc/ci-wpebackend
+                dir:output/blobs/ docker://docker.io/aperezdc/ci-libwpe
 
 workflows:
   version: 2
@@ -88,17 +88,17 @@ workflows:
             branches:
               only: /^master$/
 
-      - build-wpebackend:
+      - build-libwpe:
           requires:
             - upload-imagebuild
           filters:
             branches:
               only: /^master$/
 
-      - upload-wpebackend:
+      - upload-libwpe:
           context: wpe-ci
           requires:
-            - build-wpebackend
+            - build-libwpe
           filters:
             branches:
               only: /^master$/

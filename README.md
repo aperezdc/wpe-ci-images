@@ -8,8 +8,8 @@ used for continuous integration of [WPE WebKit](https://wpewebkit.org):
 
 - [aperezdc/ci-imagebuild](https://hub.docker.com/r/aperezdc/ci-imagebuild/):
   Used to build other images and upload them to a registry.
-- [aperezdc/ci-wpebackend](https://hub.docker.com/r/aperezdc/ci-wpebackend/):
-  Used for [WPEBackend](https://github.com/WebPlatformForEmbedded/WPEBackend).
+- [aperezdc/ci-libwpe](https://hub.docker.com/r/aperezdc/ci-libwpe/):
+  Used for [libwpe](https://github.com/WebPlatformForEmbedded/libwpe).
 
 
 Building Images
@@ -67,7 +67,7 @@ Run the `build` script, passing at least one package list in the command line
 or a package name:
 
 ```sh
-./build --output out --pkglist wpebackend.pkglist
+./build --output out --pkglist libwpe.pkglist
 ```
 
 The resulting contents of the `out/` directory will look similar to the
@@ -151,5 +151,5 @@ used directly:
 
 ```sh
 skopeo copy --dest-creds user:pass \
-    dir:out/blobs/ docker://docker.io/aperezdc/ci-wpebackend
+    dir:out/blobs/ docker://docker.io/aperezdc/ci-libwpe
 ```
