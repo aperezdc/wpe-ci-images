@@ -17,7 +17,7 @@ while read -A line ; do
 done < "${0:A:h}/functions"/*(.)
 
 require "${(u)required[@]}"
-require pigz tar fakeroot fakechroot gpg
+require pigz tar fakeroot fakechroot gpg reflector
 
 unset line
 unset required

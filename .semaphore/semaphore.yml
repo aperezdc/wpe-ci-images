@@ -1,0 +1,17 @@
+version: v1.0
+name: WPE CI images
+
+agent:
+  machine:
+    type: e1-standard-2
+
+blocks:
+  - name: Bootstrap
+    dependencies: []
+    task:
+      jobs:
+        - name: Base Arch Image
+          commands:
+            - checkout
+            - docker build -t "ci-arch-bootstrap:${SEMAPHORE_WORKFLOW_ID}" .
+            - docker run -it -u nobody:nobody -w /src "ci-arch-bootstrap:${SEMAPHORE_WORKFLOW_ID}" ./build -N -P _pkgcache -o _imagebuild -p imagebuild.pkglist -C imagebuild.json
